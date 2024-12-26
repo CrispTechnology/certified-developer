@@ -6,19 +6,17 @@ import time
 
 
 def main(FLAGS):
-    
+
     model = f"tiiuae/falcon-{FLAGS.falcon_version}"
-    
-    
-    tokenizer = AutoTokenizer.from_pretrained(model, trust_remote_code=True)
-    
-        
+
+    tokenizer = AutoTokenizer.from_pretrained(model)
+
     generator = transformers.pipeline(
         "text-generation",
         model=model,
         tokenizer=tokenizer,
         torch_dtype=torch.bfloat16,
-        trust_remote_code=False,
+        trust_remote_code=True,
         device_map="auto",
     )
 
@@ -26,29 +24,33 @@ def main(FLAGS):
 
     while user_input != "stop":
 
-        user_input = input(f"Provide Input to {model} parameter Falcon (not tuned): ")
-        
+        user_input = input(
+            f"Provide Input to {model} parameter Falcon (not tuned): ")
+
         start = time.time()
 
         if user_input != "stop":
-            sequences = generator( 
-            f""" {user_input}""",
-            max_length=FLAGS.max_length,
-            do_sample=True,
-            top_k=FLAGS.top_k,
-            num_return_sequences=1,
-            eos_token_id=tokenizer.eos_token_id,)
+            sequences = generator(
+                f""" {user_input}""",
+                max_length=FLAGS.max_length,
+                do_sample=True,
+                top_k=FLAGS.top_k,
+                num_return_sequences=1,
+                eos_token_id=tokenizer.eos_token_id,)
+        else:
+            break
 
         inference_time = time.time() - start
-        
+
         for seq in sequences:
-         print(f"Result: {seq['generated_text']}")
-         
-        print(f'Total Inference Time: {inference_time} seconds')
+            print(f"Result: {seq['generated_text']}")
+
+        print(f'Total Inference Time: {inference_time:.2f} seconds')
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    
+
     parser.add_argument('-fv',
                         '--falcon_version',
                         type=str,
@@ -64,6 +66,6 @@ if __name__ == "__main__":
                         type=int,
                         default="5",
                         help="specifies the number of highest probability tokens to consider at each step")
-    
+
     FLAGS = parser.parse_args()
     main(FLAGS)
